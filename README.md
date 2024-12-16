@@ -1,5 +1,7 @@
 # DoMacroC
 
+*Note: You need the program running in the background.*
+
 Syntax
 ```
 echo "COMMAND ARGS" > /tmp/domacro
@@ -11,7 +13,7 @@ echo "unique stardewvally keyHold 46 100 sleep 100 keyPress 54 keyPress 111 keyP
 ```
 The wait times are in milliseconds.
 
-The unique keyword will not allow to instances with the same name to run at the same time.
+The unique keyword will not allow to instances with the same name two run at the same time.
 Currently use keycodes instead of keynames. Will be fixed in the future.
 
 ## Build
