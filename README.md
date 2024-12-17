@@ -17,7 +17,6 @@ The unique keyword will not allow two instances with the same name to run at the
 Currently use keycodes instead of keynames. Will be fixed in the future.
 
 ## Build
-There is no makefile yet. Utilize whatever compiler you have. For example:
 ```
-g++ -o macro macro.cpp
+make
 ```
