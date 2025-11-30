@@ -1,17 +1,30 @@
 #include "CommandInterpreter.h"
 #include "VirtualKeyboard.h"
 #include <fcntl.h>
-#include <sys/stat.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <sys/stat.h>
 #include <unistd.h>
 
-int main()
-{
+int main() {
   const char *pipe_path = "/tmp/domacro";
-  mkfifo(pipe_path, 0666);
-  int fd = open(pipe_path, O_RDWR);
 
+  struct stat st{};
+  if (stat(pipe_path, &st) == 0) {
+    if (!S_ISFIFO(st.st_mode)) {
+      if (unlink(pipe_path) == -1) {
+        perror("unlink existing non-fifo /tmp/domacro");
+        return 1;
+      }
+    }
+  }
+
+  if (mkfifo(pipe_path, 0666) == -1 && errno != EEXIST) {
+    perror("mkfifo");
+    return 1;
+  }
+
+  int fd = open(pipe_path, O_RDWR);
   if (fd < 0) {
     perror("Failed to open pipe");
     return 1;
@@ -26,14 +39,16 @@ int main()
 
   char buffer[256];
   int virtualkeys = createAndEnableKeys();
-  if (virtualkeys < 0) return 1;
+  if (virtualkeys < 0)
+    return 1;
 
   createUinputDevice(virtualkeys);
   CommandInterpreter interpreter(virtualkeys);
 
   while (fgets(buffer, sizeof(buffer), pipe)) {
     std::string command(buffer);
-    if (command.back() == '\n') command.pop_back();
+    if (command.back() == '\n')
+      command.pop_back();
 
     if (command == "exit") {
       ioctl(virtualkeys, UI_DEV_DESTROY);
