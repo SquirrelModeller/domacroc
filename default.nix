@@ -14,7 +14,7 @@ pkgs.stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp macro_program $out/bin/
+    cp domacro $out/bin/
   '';
 
   meta = with pkgs.lib; {
