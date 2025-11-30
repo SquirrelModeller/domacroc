@@ -4,7 +4,7 @@ LDFLAGS = -lrt
 
 SRC = main.cpp CommandInterpreter.cpp VirtualKeyboard.cpp
 OBJ = $(SRC:.cpp=.o)
-TARGET = macro_program
+TARGET = domacro
 
 all: $(TARGET)
 
