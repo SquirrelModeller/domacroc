@@ -1,20 +1,26 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -pthread
-LDFLAGS = -lrt
 
-SRC = main.cpp CommandInterpreter.cpp VirtualKeyboard.cpp
-OBJ = $(SRC:.cpp=.o)
-TARGET = domacro
+DAEMON_SRC = main.cpp CommandInterpreter.cpp VirtualKeyboard.cpp
+DAEMON_OBJ = $(DAEMON_SRC:.cpp=.o)
+DAEMON = domacroc
 
-all: $(TARGET)
+CLIENT_SRC = client.cpp
+CLIENT_OBJ = $(CLIENT_SRC:.cpp=.o)
+CLIENT = domacro-send
 
-$(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS)
+all: $(DAEMON) $(CLIENT)
+
+$(DAEMON): $(DAEMON_OBJ)
+	$(CXX) $(CXXFLAGS) -o $(DAEMON) $(DAEMON_OBJ)
+
+$(CLIENT): $(CLIENT_OBJ)
+	$(CXX) $(CXXFLAGS) -o $(CLIENT) $(CLIENT_OBJ)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(DAEMON_OBJ) $(CLIENT_OBJ) $(DAEMON) $(CLIENT)
 
 .PHONY: all clean

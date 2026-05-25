@@ -14,7 +14,8 @@ pkgs.stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp domacro $out/bin/
+    cp domacroc $out/bin/
+    cp domacro-send $out/bin/
   '';
 
   meta = with pkgs.lib; {

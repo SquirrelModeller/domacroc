@@ -32,3 +32,9 @@
 *.app
 macro_program
 result
+domacro-send
+domacroc
+
+# Nix
+.direnv
+

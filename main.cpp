@@ -1,43 +1,46 @@
 #include "CommandInterpreter.h"
 #include "VirtualKeyboard.h"
-#include <fcntl.h>
-#include <fstream>
+#include <cstring>
 #include <iostream>
-#include <sys/stat.h>
+#include <string>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 int main() {
-  const char *pipe_path = "/tmp/domacro";
-
-  struct stat st{};
-  if (stat(pipe_path, &st) == 0) {
-    if (!S_ISFIFO(st.st_mode)) {
-      if (unlink(pipe_path) == -1) {
-        perror("unlink existing non-fifo /tmp/domacro");
-        return 1;
-      }
-    }
-  }
-
-  if (mkfifo(pipe_path, 0666) == -1 && errno != EEXIST) {
-    perror("mkfifo");
+  const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
+  if (!runtime_dir) {
+    std::cerr << "XDG_RUNTIME_DIR not set\n";
     return 1;
   }
 
-  int fd = open(pipe_path, O_RDWR);
-  if (fd < 0) {
-    perror("Failed to open pipe");
+  std::string sock_path = std::string(runtime_dir) + "/domacro.sock";
+
+  int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (server_fd < 0) {
+    perror("socket");
     return 1;
   }
 
-  FILE *pipe = fdopen(fd, "r");
-  if (!pipe) {
-    perror("fdopen failed");
-    close(fd);
+  unlink(sock_path.c_str());
+
+  struct sockaddr_un addr{};
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
+
+  if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    perror("bind");
+    close(server_fd);
     return 1;
   }
 
-  char buffer[256];
+  if (listen(server_fd, 5) < 0) {
+    perror("listen");
+    close(server_fd);
+    return 1;
+  }
+
   int virtualkeys = createAndEnableKeys();
   if (virtualkeys < 0)
     return 1;
@@ -45,19 +48,35 @@ int main() {
   createUinputDevice(virtualkeys);
   CommandInterpreter interpreter(virtualkeys);
 
-  while (fgets(buffer, sizeof(buffer), pipe)) {
+  while (true) {
+    int client_fd = accept(server_fd, nullptr, nullptr);
+    if (client_fd < 0) {
+      perror("accept");
+      continue;
+    }
+
+    char buffer[256];
+    ssize_t n = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+    close(client_fd);
+
+    if (n <= 0)
+      continue;
+
+    buffer[n] = '\0';
     std::string command(buffer);
-    if (command.back() == '\n')
+    if (!command.empty() && command.back() == '\n')
       command.pop_back();
 
     if (command == "exit") {
       ioctl(virtualkeys, UI_DEV_DESTROY);
       break;
     }
+
     interpreter.interpret(command);
   }
 
-  fclose(pipe);
-  close(fd);
+  close(server_fd);
+  unlink(sock_path.c_str());
   close(virtualkeys);
+  return 0;
 }
